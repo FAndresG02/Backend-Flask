@@ -4,6 +4,7 @@ from firebase_admin import credentials, firestore, messaging
 from datetime import datetime
 import re
 import random
+from generar_texto import generar_informe_ia
 
 app = Flask(__name__)
 
@@ -96,7 +97,7 @@ def obd_data():
 
         unique = remove_duplicates_from_firestore()
 
-        # 🔔 ENVIAR NOTIFICACIÓN
+        # ENVIAR NOTIFICACIÓN
         send_push_notification(
             title="Nuevo DTC registrado",
             body=f"Código(s): {', '.join(data['dtc'])}",
@@ -147,7 +148,7 @@ def simulate_data():
         db.collection("obd_data").add(data)
         unique = remove_duplicates_from_firestore()
 
-        # 🔔 ENVIAR NOTIFICACIÓN
+        # ENVIAR NOTIFICACIÓN
         send_push_notification(
             title="Nuevo DTC simulado",
             body=f"Código(s): {', '.join(cleaned)}",
@@ -215,6 +216,43 @@ def get_vehicle():
     except Exception as e:
         print("ERROR en GET /vehicle:", e)
         return jsonify({"exists": False, "error": str(e)}), 500
+    
+
+@app.route('/ia/<codigo>', methods=['GET'])
+def ia_dtc(codigo):
+    try:
+        # Obtener datos del vehículo
+        doc = db.collection("vehicle_config").document("config").get()
+        if not doc.exists:
+            return jsonify({"error": "No hay vehículo guardado"}), 400
+        
+        vehiculo = doc.to_dict()
+
+        # Validar código
+        codigo = clean_string(codigo)
+        if not is_valid_dtc(codigo):
+            return jsonify({"error": "Código DTC inválido"}), 400
+
+        # Generar informe usando Gemini
+        informe = generar_informe_ia(codigo, vehiculo)
+
+        # Guardar historial (opcional)
+        db.collection("ia_reports").add({
+            "codigo": codigo,
+            "vehiculo": vehiculo,
+            "informe": informe,
+            "timestamp": datetime.now().isoformat()
+        })
+
+        return jsonify({
+            "codigo": codigo,
+            "vehiculo": vehiculo,
+            "informe": informe
+        }), 200
+
+    except Exception as e:
+        print("ERROR IA:", e)
+        return jsonify({"error": str(e)}), 500
 
 
 # -----------------------------
