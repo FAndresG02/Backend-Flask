@@ -60,13 +60,19 @@ def remove_duplicates_from_firestore():
 # -----------------------------
 # FUNCION PARA ENVIAR NOTIFICACIÓN FCM
 # -----------------------------
-def send_push_notification(title, body):
+def send_push_notification(title, body, codigo):
     message = messaging.Message(
         notification=messaging.Notification(
             title=title,
             body=body
         ),
-        topic='todos'  # Flutter debe suscribirse a este topic
+        data={ "dtc": codigo },
+        topic='todos',
+        android=messaging.AndroidConfig(
+            notification=messaging.AndroidNotification(
+                click_action="FLUTTER_NOTIFICATION_CLICK"
+            )
+        )
     )
     response = messaging.send(message)
     print('Notificación enviada:', response)
@@ -93,7 +99,9 @@ def obd_data():
         # 🔔 ENVIAR NOTIFICACIÓN
         send_push_notification(
             title="Nuevo DTC registrado",
-            body=f"Código(s): {', '.join(data['dtc'])}"
+            body=f"Código(s): {', '.join(data['dtc'])}",
+            codigo=data["dtc"][0] 
+            
         )
 
         return jsonify({
@@ -142,7 +150,8 @@ def simulate_data():
         # 🔔 ENVIAR NOTIFICACIÓN
         send_push_notification(
             title="Nuevo DTC simulado",
-            body=f"Código(s): {', '.join(cleaned)}"
+            body=f"Código(s): {', '.join(cleaned)}",
+            codigo=cleaned[0] 
         )
 
         return jsonify({
@@ -154,6 +163,59 @@ def simulate_data():
     except Exception as e:
         print("ERROR en /simulate:", str(e))
         return jsonify({"error": str(e)}), 500
+    
+# -----------------------------
+# ENDPOINT: GUARDAR CONFIGURACIÓN DEL VEHÍCULO
+# -----------------------------
+@app.route('/vehicle', methods=['POST'])
+def save_vehicle():
+    try:
+        data = request.get_json(force=True, silent=True)
+
+        if not data:
+            return jsonify({"error": "Datos inválidos"}), 400
+
+        required = ["marca", "modelo", "año", "vin"]
+        for key in required:
+            if key not in data or not str(data[key]).strip():
+                return jsonify({"error": f"Falta el campo: {key}"}), 400
+
+        # Guardar en Firestore
+        db.collection("vehicle_config").document("config").set({
+            "marca": data["marca"],
+            "modelo": data["modelo"],
+            "anio": data["año"],
+            "vin": data["vin"],
+            "timestamp": datetime.now().isoformat()
+        })
+
+        return jsonify({"status": "ok", "vehicle_saved": data}), 200
+
+    except Exception as e:
+        print("ERROR en /vehicle:", str(e))
+        return jsonify({"error": str(e)}), 500
+    
+
+# -----------------------------------------
+# ENDPOINT: OBTENER VEHÍCULO GUARDADO
+# -----------------------------------------
+@app.route('/vehicle', methods=['GET'])
+def get_vehicle():
+    try:
+        doc = db.collection("vehicle_config").document("config").get()
+
+        if not doc.exists:
+            return jsonify({"exists": False}), 200
+
+        data = doc.to_dict()
+        data["exists"] = True
+
+        return jsonify(data), 200
+
+    except Exception as e:
+        print("ERROR en GET /vehicle:", e)
+        return jsonify({"exists": False, "error": str(e)}), 500
+
 
 # -----------------------------
 # INICIAR SERVIDOR
