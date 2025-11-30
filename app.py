@@ -150,7 +150,7 @@ def simulate_data():
 
         # ENVIAR NOTIFICACIÓN
         send_push_notification(
-            title="Nuevo DTC simulado",
+            title="Nuevo DTC registrado",
             body=f"Código(s): {', '.join(cleaned)}",
             codigo=cleaned[0] 
         )
@@ -252,6 +252,49 @@ def ia_dtc(codigo):
 
     except Exception as e:
         print("ERROR IA:", e)
+        return jsonify({"error": str(e)}), 500
+    
+# -----------------------------------------
+# ENDPOINT: BORRAR SOLO UN CÓDIGO DTC
+# -----------------------------------------
+@app.route('/delete_dtc/<codigo>', methods=['DELETE'])
+def delete_dtc(codigo):
+    try:
+        # Limpiar y validar el código
+        codigo = clean_string(codigo)
+
+        if not is_valid_dtc(codigo):
+            return jsonify({"error": "Código DTC inválido"}), 400
+
+        docs = db.collection("obd_data").stream()
+
+        modified_docs = 0
+        removed_docs = 0
+
+        for doc in docs:
+            data = doc.to_dict()
+
+            if "dtc" in data and codigo in data["dtc"]:
+                nueva_lista = [c for c in data["dtc"] if c != codigo]
+
+                if len(nueva_lista) == 0:
+                    # El documento queda vacío → eliminar
+                    doc.reference.delete()
+                    removed_docs += 1
+                else:
+                    # Actualizar documento sin el DTC eliminado
+                    doc.reference.update({"dtc": nueva_lista})
+                    modified_docs += 1
+
+        return jsonify({
+            "status": "ok",
+            "deleted_code": codigo,
+            "updated_docs": modified_docs,
+            "removed_empty_docs": removed_docs
+        }), 200
+
+    except Exception as e:
+        print("ERROR en DELETE /delete_dtc:", e)
         return jsonify({"error": str(e)}), 500
 
 
