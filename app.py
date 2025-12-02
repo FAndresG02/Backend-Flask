@@ -217,7 +217,10 @@ def get_vehicle():
         print("ERROR en GET /vehicle:", e)
         return jsonify({"exists": False, "error": str(e)}), 500
     
-
+    
+# -----------------------------------------
+# ENDPOINT: OBTENER VEHÍCULO GUARDADO
+# -----------------------------------------
 @app.route('/ia/<codigo>', methods=['GET'])
 def ia_dtc(codigo):
     try:
@@ -253,6 +256,7 @@ def ia_dtc(codigo):
     except Exception as e:
         print("ERROR IA:", e)
         return jsonify({"error": str(e)}), 500
+    
     
 # -----------------------------------------
 # ENDPOINT: BORRAR SOLO UN CÓDIGO DTC
@@ -296,7 +300,61 @@ def delete_dtc(codigo):
     except Exception as e:
         print("ERROR en DELETE /delete_dtc:", e)
         return jsonify({"error": str(e)}), 500
+    
 
+
+# -----------------------------------------
+# ENDPOINT: OBTENER HISTORIAL COMPLETO IA_REPORTS
+# -----------------------------------------
+@app.route('/ia_reports', methods=['GET'])
+def get_ia_reports():
+    try:
+        docs = db.collection("ia_reports").order_by("timestamp", direction=firestore.Query.DESCENDING).stream()
+
+        historial = []
+        for doc in docs:
+            data = doc.to_dict()
+            data["id"] = doc.id  # opcional: útil para borrar por ID
+            historial.append(data)
+
+        return jsonify({
+            "count": len(historial),
+            "reports": historial
+        }), 200
+
+    except Exception as e:
+        print("ERROR en GET /ia_reports:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+# -----------------------------------------
+# ENDPOINT: ELIMINAR INFORME IA POR CÓDIGO
+# -----------------------------------------
+@app.route('/ia_reports/<codigo>', methods=['DELETE'])
+def delete_ia_report(codigo):
+    try:
+        codigo = clean_string(codigo)
+
+        # validar código
+        if not is_valid_dtc(codigo):
+            return jsonify({"error": "Código DTC inválido"}), 400
+
+        docs = db.collection("ia_reports").where("codigo", "==", codigo).stream()
+
+        eliminados = 0
+        for doc in docs:
+            doc.reference.delete()
+            eliminados += 1
+
+        return jsonify({
+            "status": "ok",
+            "deleted_code": codigo,
+            "deleted_reports": eliminados
+        }), 200
+
+    except Exception as e:
+        print("ERROR en DELETE /ia_reports/<codigo>:", e)
+        return jsonify({"error": str(e)}), 500
 
 # -----------------------------
 # INICIAR SERVIDOR
