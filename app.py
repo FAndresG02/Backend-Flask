@@ -4,6 +4,7 @@ from firebase_admin import credentials, firestore, messaging
 from datetime import datetime
 import re
 import random
+import requests
 from generar_texto import generar_informe_ia
 
 app = Flask(__name__)
@@ -95,7 +96,7 @@ def obd_data():
         data["timestamp"] = datetime.now().isoformat()
         db.collection("obd_data").add(data)
 
-        unique = remove_duplicates_from_firestore()
+        # unique = remove_duplicates_from_firestore()
 
         # ENVIAR NOTIFICACIÓN
         send_push_notification(
@@ -108,7 +109,7 @@ def obd_data():
         return jsonify({
             "status": "ok",
             "saved": data,
-            "unique_after_cleanup": unique
+            # "unique_after_cleanup": unique
         }), 200
 
     except Exception as e:
@@ -119,22 +120,32 @@ def obd_data():
 # ENDPOINT: OBTENER DTC ÚNICOS
 # -----------------------------
 @app.route('/data', methods=['GET'])
-def get_data():
+def get_data_full():
     try:
         docs = db.collection("obd_data").stream()
-        all_dtcs = []
+        registros = []
         for doc in docs:
             data = doc.to_dict()
             if "dtc" in data and isinstance(data["dtc"], list):
-                all_dtcs.extend(data["dtc"])
-        unique_dtcs = clean_dtc_list(all_dtcs)
-        return jsonify({"unique_dtc": unique_dtcs, "count": len(unique_dtcs)}), 200
+                for codigo in data["dtc"]:
+                    registros.append({
+                        "codigo": codigo,
+                        "timestamp": data.get("timestamp")
+                    })
+
+        return jsonify({
+            "dtc_registros": registros,
+            "count": len(registros)
+        }), 200
+
     except Exception as e:
-        print("ERROR en /data:", str(e))
+        print("ERROR en /data_full:", str(e))
         return jsonify({"error": str(e)}), 500
 
+
+
 # -----------------------------
-# ENDPOINT: SIMULAR DTC
+# ENDPOINT: SIMULAR DTC ALEATORIO
 # -----------------------------
 @app.route('/simulate', methods=['GET'])
 def simulate_data():
@@ -146,25 +157,55 @@ def simulate_data():
         cleaned = clean_dtc_list([generated])
         data = {"dtc": cleaned, "timestamp": datetime.now().isoformat()}
         db.collection("obd_data").add(data)
-        unique = remove_duplicates_from_firestore()
+        # unique = remove_duplicates_from_firestore()
 
         # ENVIAR NOTIFICACIÓN
         send_push_notification(
             title="Nuevo DTC registrado",
             body=f"Código(s): {', '.join(cleaned)}",
-            codigo=cleaned[0] 
+            codigo=cleaned[0]
         )
 
         return jsonify({
             "status": "simulated",
             "generated_raw": generated,
             "generated_cleaned": cleaned,
-            "unique_after_cleanup": unique
+            # "unique_after_cleanup": unique
         }), 200
     except Exception as e:
         print("ERROR en /simulate:", str(e))
         return jsonify({"error": str(e)}), 500
-    
+
+
+# -----------------------------
+# ENDPOINT: SIMULAR DTC ESPECÍFICO
+# -----------------------------
+@app.route('/create_dtc/<codigo>', methods=['GET'])
+def simulate_specific_dtc(codigo):
+    try:
+        # Usar directamente el código enviado por la URL
+        cleaned = clean_dtc_list([codigo])
+        data = {"dtc": cleaned, "timestamp": datetime.now().isoformat()}
+        db.collection("obd_data").add(data)
+        # unique = remove_duplicates_from_firestore()
+
+        # ENVIAR NOTIFICACIÓN
+        send_push_notification(
+            title="Nuevo DTC registrado",
+            body=f"Código(s): {', '.join(cleaned)}",
+            codigo=cleaned[0]
+        )
+
+        return jsonify({
+            "status": "simulated",
+            "received_raw": codigo,
+            "generated_cleaned": cleaned,
+            # "unique_after_cleanup": unique
+        }), 200
+    except Exception as e:
+        print("ERROR en /create_dtc:", str(e))
+        return jsonify({"error": str(e)}), 500
+
 # -----------------------------
 # ENDPOINT: GUARDAR CONFIGURACIÓN DEL VEHÍCULO
 # -----------------------------
@@ -314,7 +355,7 @@ def get_ia_reports():
         historial = []
         for doc in docs:
             data = doc.to_dict()
-            data["id"] = doc.id  # opcional: útil para borrar por ID
+            data["id"] = doc.id  
             historial.append(data)
 
         return jsonify({
@@ -355,6 +396,125 @@ def delete_ia_report(codigo):
     except Exception as e:
         print("ERROR en DELETE /ia_reports/<codigo>:", e)
         return jsonify({"error": str(e)}), 500
+    
+
+# -----------------------------------------
+# ENDPOINT: ELIMINAR TODOS LOS INFORMES IA
+# -----------------------------------------
+@app.route('/ia_reports', methods=['DELETE'])
+def delete_all_ia_reports():
+    try:
+        docs = db.collection("ia_reports").stream()
+
+        eliminados = 0
+        for doc in docs:
+            doc.reference.delete()
+            eliminados += 1
+
+        return jsonify({
+            "status": "ok",
+            "deleted_reports": eliminados
+        }), 200
+
+    except Exception as e:
+        print("ERROR en DELETE /ia_reports:", e)
+        return jsonify({"error": str(e)}), 500
+
+    
+# -----------------------------------------
+# ENDPOINT: GUARDAR / ACTUALIZAR INFORME IA
+# -----------------------------------------
+@app.route('/ia_reports', methods=['POST'])
+def save_ia_report():
+    try:
+        data = request.get_json()
+
+        if not data or "codigo" not in data or "informe" not in data:
+            return jsonify({"error": "Falta codigo o informe"}), 400
+
+        codigo = clean_string(data["codigo"])
+
+        # Eliminar informes previos del mismo código
+        old_docs = db.collection("ia_reports").where("codigo", "==", codigo).stream()
+        for doc in old_docs:
+            doc.reference.delete()
+
+        # Insertar el nuevo informe
+        db.collection("ia_reports").add({
+            "codigo": codigo,
+            "informe": data["informe"],
+            "timestamp": datetime.now().isoformat()
+        })
+
+        return jsonify({"status": "updated", "codigo": codigo}), 200
+
+    except Exception as e:
+        print("ERROR guardando IA report:", e)
+        return jsonify({"error": str(e)}), 500
+    
+
+# -----------------------------------------
+# ENDPOINT: borrar TODOS los DTC 
+# -----------------------------------------
+@app.route('/borrar_dtc_todos', methods=['POST'])
+def clear_history():
+    try:
+        docs = db.collection("obd_data").stream()
+        batch = db.batch()
+        count = 0
+
+        for doc in docs:
+            batch.delete(doc.reference)
+            count += 1
+
+        batch.commit()
+
+        return jsonify({
+            "status": "success",
+            "message": "Historial de Firestore eliminado.",
+            "deleted_count": count
+        }), 200
+
+    except Exception as e:
+        print(f"ERROR /clear_history: {e}")
+        return jsonify({"error": "Error borrando base de datos", "details": str(e)}), 500
+
+
+# -----------------------------------------
+# ENDPOINT: borrar CÓDIGOS DTC en la ECU
+# -----------------------------------------   
+@app.route('/reset_ecu', methods=['POST'])
+def reset_ecu():
+    esp32_url = "http://192.168.0.3/clear_obd"
+    
+    try:
+        # Timeout corto (3s) para no dejar colgada la app si el carro está apagado
+        r = requests.post(esp32_url, timeout=3)
+
+        if r.status_code == 200:
+            return jsonify({
+                "status": "success",
+                "message": "Comando enviado a la ECU correctamente."
+            }), 200
+        else:
+            return jsonify({
+                "status": "error",
+                "message": f"ESP32 respondió con error: {r.status_code}"
+            }), 502 # Bad Gateway (error del dispositivo remoto)
+
+    except requests.exceptions.ConnectTimeout:
+        return jsonify({
+            "status": "error",
+            "message": "Tiempo de espera agotado. ¿Está el ESP32 encendido?"
+        }), 504 # Gateway Timeout
+        
+    except requests.exceptions.RequestException as e:
+        # Cualquier otro error de conexión
+        print(f"ERROR CONEXIÓN ESP32: {e}")
+        return jsonify({
+            "status": "error",
+            "message": "No se pudo conectar con el ESP32."
+        }), 503 # Service Unavailable
 
 # -----------------------------
 # INICIAR SERVIDOR

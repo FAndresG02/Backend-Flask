@@ -39,9 +39,6 @@ Acciones sugeridas según el modelo del vehículo.
 - Rango estimado de precios  
 - (Opcional) Enlace de referencia
 
-## Nota adicional  
-Información útil: frecuencia del problema, emisiones, consejos preventivos.
-
 Estilo: profesional, amigable, claro. No asustes al usuario innecesariamente.
 """
 
