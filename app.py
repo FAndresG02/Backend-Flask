@@ -5,14 +5,36 @@ from datetime import datetime
 import re
 import random
 import requests
+import os
+import json
 from generar_texto import generar_informe_ia
 
 app = Flask(__name__)
 
+# # -----------------------------
+# # INICIALIZAR FIREBASE
+# # -----------------------------
+# cred = credentials.Certificate("serviceAccountKey.json")
+# firebase_admin.initialize_app(cred)
+# db = firestore.client()
+
 # -----------------------------
-# INICIALIZAR FIREBASE
+# INICIALIZAR FIREBASE (desde ENV VAR si existe)
 # -----------------------------
-cred = credentials.Certificate("serviceAccountKey.json")
+firebase_cred_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
+
+if firebase_cred_json:
+    # La variable debe contener el JSON completo (string)
+    try:
+        cred_dict = json.loads(firebase_cred_json)
+        cred = credentials.Certificate(cred_dict)
+    except Exception as e:
+        print("Error parseando FIREBASE_SERVICE_ACCOUNT_JSON:", e)
+        raise
+else:
+    # Modo fallback (útil para desarrollo local si tienes el archivo)
+    cred = credentials.Certificate("serviceAccountKey.json")
+
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
@@ -519,5 +541,7 @@ def reset_ecu():
 # -----------------------------
 # INICIAR SERVIDOR
 # -----------------------------
+# if __name__ == '__main__':
+#     app.run(host='0.0.0.0', port=5000, debug=True)
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
