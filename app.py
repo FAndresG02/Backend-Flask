@@ -505,38 +505,36 @@ def clear_history():
 # -----------------------------------------
 # ENDPOINT: borrar CÓDIGOS DTC en la ECU
 # -----------------------------------------   
-@app.route('/reset_ecu', methods=['POST'])
-def reset_ecu():
-    esp32_url = "http://192.168.0.3/clear_obd"
-    
-    try:
-        # Timeout corto (3s) para no dejar colgada la app si el carro está apagado
-        r = requests.post(esp32_url, timeout=3)
+@app.route('/commands/clear_dtc', methods=['POST'])
+def command_clear_dtc():
+    db.collection("commands").document("ecu").set({
+        "action": "CLEAR_DTC",
+        "status": "pending",
+        "requested_at": datetime.utcnow().isoformat() + "Z"
+    })
+    return jsonify({"status": "ok"}), 200
 
-        if r.status_code == 200:
-            return jsonify({
-                "status": "success",
-                "message": "Comando enviado a la ECU correctamente."
-            }), 200
-        else:
-            return jsonify({
-                "status": "error",
-                "message": f"ESP32 respondió con error: {r.status_code}"
-            }), 502 # Bad Gateway (error del dispositivo remoto)
 
-    except requests.exceptions.ConnectTimeout:
-        return jsonify({
-            "status": "error",
-            "message": "Tiempo de espera agotado. ¿Está el ESP32 encendido?"
-        }), 504 # Gateway Timeout
-        
-    except requests.exceptions.RequestException as e:
-        # Cualquier otro error de conexión
-        print(f"ERROR CONEXIÓN ESP32: {e}")
-        return jsonify({
-            "status": "error",
-            "message": "No se pudo conectar con el ESP32."
-        }), 503 # Service Unavailable
+@app.route('/commands/status', methods=['GET'])
+def command_status():
+    doc = db.collection("commands").document("ecu").get()
+    if not doc.exists:
+        return jsonify({"exists": False}), 200
+    return jsonify(doc.to_dict()), 200
+
+
+@app.route('/commands/confirm', methods=['POST'])
+def command_confirm():
+    data = request.get_json()
+    status = data.get("status", "error")
+
+    db.collection("commands").document("ecu").set({
+        "action": None,
+        "status": status,
+        "completed_at": datetime.utcnow().isoformat() + "Z"
+    })
+
+    return jsonify({"status": "updated"}), 200
 
 # -----------------------------
 # INICIAR SERVIDOR
