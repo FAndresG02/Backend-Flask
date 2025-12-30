@@ -11,20 +11,12 @@ from generar_texto import generar_informe_ia
 
 app = Flask(__name__)
 
-# # -----------------------------
-# # INICIALIZAR FIREBASE
-# # -----------------------------
-# cred = credentials.Certificate("serviceAccountKey.json")
-# firebase_admin.initialize_app(cred)
-# db = firestore.client()
-
 # -----------------------------
 # INICIALIZAR FIREBASE (desde ENV VAR si existe)
 # -----------------------------
 firebase_cred_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
 
 if firebase_cred_json:
-    # La variable debe contener el JSON completo (string)
     try:
         cred_dict = json.loads(firebase_cred_json)
         cred = credentials.Certificate(cred_dict)
@@ -32,7 +24,6 @@ if firebase_cred_json:
         print("Error parseando FIREBASE_SERVICE_ACCOUNT_JSON:", e)
         raise
 else:
-    # Modo fallback (útil para desarrollo local si tienes el archivo)
     cred = credentials.Certificate("serviceAccountKey.json")
 
 firebase_admin.initialize_app(cred)
@@ -56,30 +47,6 @@ def clean_dtc_list(dtc_list):
         if is_valid_dtc(c):
             cleaned.append(c)
     return sorted(list(set(cleaned)))
-
-def remove_duplicates_from_firestore():
-    docs = db.collection("obd_data").stream()
-    all_dtcs = []
-    for doc in docs:
-        data = doc.to_dict()
-        if "dtc" in data and isinstance(data["dtc"], list):
-            all_dtcs.extend(data["dtc"])
-    unique_dtcs = clean_dtc_list(all_dtcs)
-
-    # Borrar toda la colección
-    batch = db.batch()
-    for doc in db.collection("obd_data").stream():
-        batch.delete(doc.reference)
-    batch.commit()
-
-    # Guardar solo DTC únicos
-    for code in unique_dtcs:
-        db.collection("obd_data").add({
-            "dtc": [code],
-            "timestamp": datetime.now().isoformat()
-        })
-
-    return unique_dtcs
 
 # -----------------------------
 # FUNCION PARA ENVIAR NOTIFICACIÓN FCM
@@ -118,8 +85,6 @@ def obd_data():
         data["timestamp"] = datetime.now().isoformat()
         db.collection("obd_data").add(data)
 
-        # unique = remove_duplicates_from_firestore()
-
         # ENVIAR NOTIFICACIÓN
         send_push_notification(
             title="Nuevo DTC registrado",
@@ -131,7 +96,6 @@ def obd_data():
         return jsonify({
             "status": "ok",
             "saved": data,
-            # "unique_after_cleanup": unique
         }), 200
 
     except Exception as e:
@@ -164,8 +128,6 @@ def get_data_full():
         print("ERROR en /data_full:", str(e))
         return jsonify({"error": str(e)}), 500
 
-
-
 # -----------------------------
 # ENDPOINT: SIMULAR DTC ALEATORIO
 # -----------------------------
@@ -179,7 +141,6 @@ def simulate_data():
         cleaned = clean_dtc_list([generated])
         data = {"dtc": cleaned, "timestamp": datetime.now().isoformat()}
         db.collection("obd_data").add(data)
-        # unique = remove_duplicates_from_firestore()
 
         # ENVIAR NOTIFICACIÓN
         send_push_notification(
@@ -192,7 +153,6 @@ def simulate_data():
             "status": "simulated",
             "generated_raw": generated,
             "generated_cleaned": cleaned,
-            # "unique_after_cleanup": unique
         }), 200
     except Exception as e:
         print("ERROR en /simulate:", str(e))
@@ -205,11 +165,9 @@ def simulate_data():
 @app.route('/create_dtc/<codigo>', methods=['GET'])
 def simulate_specific_dtc(codigo):
     try:
-        # Usar directamente el código enviado por la URL
         cleaned = clean_dtc_list([codigo])
         data = {"dtc": cleaned, "timestamp": datetime.now().isoformat()}
         db.collection("obd_data").add(data)
-        # unique = remove_duplicates_from_firestore()
 
         # ENVIAR NOTIFICACIÓN
         send_push_notification(
@@ -222,7 +180,6 @@ def simulate_specific_dtc(codigo):
             "status": "simulated",
             "received_raw": codigo,
             "generated_cleaned": cleaned,
-            # "unique_after_cleanup": unique
         }), 200
     except Exception as e:
         print("ERROR en /create_dtc:", str(e))
@@ -244,7 +201,6 @@ def save_vehicle():
             if key not in data or not str(data[key]).strip():
                 return jsonify({"error": f"Falta el campo: {key}"}), 400
 
-        # Guardar en Firestore
         db.collection("vehicle_config").document("config").set({
             "marca": data["marca"],
             "modelo": data["modelo"],
@@ -282,27 +238,23 @@ def get_vehicle():
     
     
 # -----------------------------------------
-# ENDPOINT: OBTENER VEHÍCULO GUARDADO
+# ENDPOINT: GENERAR INFORME IA PARA CÓDIGO DTC
 # -----------------------------------------
 @app.route('/ia/<codigo>', methods=['GET'])
 def ia_dtc(codigo):
     try:
-        # Obtener datos del vehículo
         doc = db.collection("vehicle_config").document("config").get()
         if not doc.exists:
             return jsonify({"error": "No hay vehículo guardado"}), 400
         
         vehiculo = doc.to_dict()
 
-        # Validar código
         codigo = clean_string(codigo)
         if not is_valid_dtc(codigo):
             return jsonify({"error": "Código DTC inválido"}), 400
 
-        # Generar informe usando Gemini
         informe = generar_informe_ia(codigo, vehiculo)
 
-        # Guardar historial (opcional)
         db.collection("ia_reports").add({
             "codigo": codigo,
             "vehiculo": vehiculo,
@@ -327,7 +279,6 @@ def ia_dtc(codigo):
 @app.route('/delete_dtc/<codigo>', methods=['DELETE'])
 def delete_dtc(codigo):
     try:
-        # Limpiar y validar el código
         codigo = clean_string(codigo)
 
         if not is_valid_dtc(codigo):
@@ -345,11 +296,9 @@ def delete_dtc(codigo):
                 nueva_lista = [c for c in data["dtc"] if c != codigo]
 
                 if len(nueva_lista) == 0:
-                    # El documento queda vacío → eliminar
                     doc.reference.delete()
                     removed_docs += 1
                 else:
-                    # Actualizar documento sin el DTC eliminado
                     doc.reference.update({"dtc": nueva_lista})
                     modified_docs += 1
 
@@ -364,8 +313,6 @@ def delete_dtc(codigo):
         print("ERROR en DELETE /delete_dtc:", e)
         return jsonify({"error": str(e)}), 500
     
-
-
 # -----------------------------------------
 # ENDPOINT: OBTENER HISTORIAL COMPLETO IA_REPORTS
 # -----------------------------------------
@@ -389,7 +336,6 @@ def get_ia_reports():
         print("ERROR en GET /ia_reports:", e)
         return jsonify({"error": str(e)}), 500
 
-
 # -----------------------------------------
 # ENDPOINT: ELIMINAR INFORME IA POR CÓDIGO
 # -----------------------------------------
@@ -398,7 +344,6 @@ def delete_ia_report(codigo):
     try:
         codigo = clean_string(codigo)
 
-        # validar código
         if not is_valid_dtc(codigo):
             return jsonify({"error": "Código DTC inválido"}), 400
 
@@ -419,7 +364,6 @@ def delete_ia_report(codigo):
         print("ERROR en DELETE /ia_reports/<codigo>:", e)
         return jsonify({"error": str(e)}), 500
     
-
 # -----------------------------------------
 # ENDPOINT: ELIMINAR TODOS LOS INFORMES IA
 # -----------------------------------------
@@ -440,40 +384,7 @@ def delete_all_ia_reports():
 
     except Exception as e:
         print("ERROR en DELETE /ia_reports:", e)
-        return jsonify({"error": str(e)}), 500
-
-    
-# -----------------------------------------
-# ENDPOINT: GUARDAR / ACTUALIZAR INFORME IA
-# -----------------------------------------
-@app.route('/ia_reports', methods=['POST'])
-def save_ia_report():
-    try:
-        data = request.get_json()
-
-        if not data or "codigo" not in data or "informe" not in data:
-            return jsonify({"error": "Falta codigo o informe"}), 400
-
-        codigo = clean_string(data["codigo"])
-
-        # Eliminar informes previos del mismo código
-        old_docs = db.collection("ia_reports").where("codigo", "==", codigo).stream()
-        for doc in old_docs:
-            doc.reference.delete()
-
-        # Insertar el nuevo informe
-        db.collection("ia_reports").add({
-            "codigo": codigo,
-            "informe": data["informe"],
-            "timestamp": datetime.now().isoformat()
-        })
-
-        return jsonify({"status": "updated", "codigo": codigo}), 200
-
-    except Exception as e:
-        print("ERROR guardando IA report:", e)
-        return jsonify({"error": str(e)}), 500
-    
+        return jsonify({"error": str(e)}), 500    
 
 # -----------------------------------------
 # ENDPOINT: borrar TODOS los DTC 
@@ -500,7 +411,6 @@ def clear_history():
     except Exception as e:
         print(f"ERROR /clear_history: {e}")
         return jsonify({"error": "Error borrando base de datos", "details": str(e)}), 500
-
 
 # -----------------------------------------
 # ENDPOINT: borrar CÓDIGOS DTC en la ECU
@@ -539,7 +449,5 @@ def command_confirm():
 # -----------------------------
 # INICIAR SERVIDOR
 # -----------------------------
-# if __name__ == '__main__':
-#     app.run(host='0.0.0.0', port=5000, debug=True)
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
