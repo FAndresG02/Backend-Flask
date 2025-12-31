@@ -7,6 +7,7 @@ import random
 import requests
 import os
 import json
+from datetime import datetime, timezone
 from generar_texto import generar_informe_ia
 
 app = Flask(__name__)
@@ -110,13 +111,16 @@ def get_data_full():
     try:
         docs = db.collection("obd_data").stream()
         registros = []
+
         for doc in docs:
             data = doc.to_dict()
+            timestamp = data.get("timestamp")
+
             if "dtc" in data and isinstance(data["dtc"], list):
                 for codigo in data["dtc"]:
                     registros.append({
                         "codigo": codigo,
-                        "timestamp": data.get("timestamp")
+                        "timestamp": timestamp
                     })
 
         return jsonify({
@@ -125,7 +129,7 @@ def get_data_full():
         }), 200
 
     except Exception as e:
-        print("ERROR en /data_full:", str(e))
+        print("ERROR en /data:", str(e))
         return jsonify({"error": str(e)}), 500
 
 # -----------------------------
@@ -138,11 +142,17 @@ def simulate_data():
         prefix = random.choice(prefixes)
         numbers = str(random.randint(1000, 99999))
         generated = prefix + numbers
+
         cleaned = clean_dtc_list([generated])
-        data = {"dtc": cleaned, "timestamp": datetime.now().isoformat()}
+
+        data = {
+            "dtc": cleaned,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+
         db.collection("obd_data").add(data)
 
-        # ENVIAR NOTIFICACIÓN
+        # ENVIAR NOTIFICACIÓN PUSH
         send_push_notification(
             title="Nuevo DTC registrado",
             body=f"Código(s): {', '.join(cleaned)}",
@@ -153,11 +163,12 @@ def simulate_data():
             "status": "simulated",
             "generated_raw": generated,
             "generated_cleaned": cleaned,
+            "timestamp": data["timestamp"]
         }), 200
+
     except Exception as e:
         print("ERROR en /simulate:", str(e))
         return jsonify({"error": str(e)}), 500
-
 
 # -----------------------------
 # ENDPOINT: SIMULAR DTC ESPECÍFICO
