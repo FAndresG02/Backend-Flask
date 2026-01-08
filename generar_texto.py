@@ -51,27 +51,30 @@ Indicar si es seguro conducir o si se recomienda detener el uso del vehículo.
 TIPO DE CODIGO:
 Indicar si es genérico (SAE) o específico del fabricante.
 
-RECOMENDACION:
+RECOMENDACIÓN:
 Acciones sugeridas considerando la marca, modelo, año y VIN del vehículo.
 
 REPUESTO SUGERIDO:
-
 Si el código DTC es específico:
 - Indicar el nombre exacto del repuesto en base a la información del vehículo (marca, modelo, año y VIN).
 - Obligatoriamente mostrar al menos 4 opciones de compra del repuesto:
     - Nombre del repuesto
     - Precio estimado
-    - URL directa a la tienda (ejemplo: Amazon, eBay, AutoZone, RockAuto, MercadoLibre, etc.)
+    - URL directa a la tienda (ejemplo: Amazon, eBay, AutoZone, RockAuto, MercadoLibre y otras tiendas.)
 - Las opciones deben ser variadas en tiendas y precios para dar alternativas al usuario.
 - Ejemplo de formato de salida:
 
-  Código: P0135 (Sensor de oxígeno calefactado)
-  Repuesto: Sensor de oxígeno delantero
-  Opciones de compra:
-  - Amazon: $45.99 → https://www.amazon.com/dp/XXXX
-  - AutoZone: $52.00 → https://www.autozone.com/XXXX
-  - RockAuto: $39.50 → https://www.rockauto.com/XXXX
-  - MercadoLibre: $48.00 → https://www.mercadolibre.com/XXXX
+Código: [Código DTC] ([Descripción del código])
+Repuesto: [Nombre del repuesto sugerido]
+Opciones de compra:
+- Tienda 1: [Precio estimado]
+  → [URL]
+- Tienda 2: [Precio estimado]
+  → [URL]
+- Tienda 3: [Precio estimado]
+  → [URL]
+- Tienda 4: [Precio estimado]
+  → [URL]
 
 Si el código DTC es genérico:
 - Indicar claramente que no se recomienda un repuesto específico confirmado.
@@ -80,17 +83,21 @@ Si el código DTC es genérico:
 - Obligatoriamente sugerir al menos 4 posibles repuestos en base a la información del vehículo (marca, modelo, año y VIN):
     - Nombre del repuesto
     - Precio estimado
-    - URL directa a la tienda (ejemplo: Amazon, eBay, AutoZone, RockAuto, MercadoLibre, etc.)
+    - URL directa a la tienda (ejemplo: Amazon, eBay, AutoZone, RockAuto, MercadoLibre y otras tiendas.)
 - Las opciones deben ser variadas en tiendas y precios para dar alternativas al usuario.
 - Ejemplo de formato de salida:
 
-  Código: P0300 (Fallo de encendido aleatorio)
-  Este código es genérico. Se necesita diagnóstico adicional antes de reemplazar piezas.
-  Posibles repuestos relacionados (lista orientativa):
-  - Bujías: $15.00 → https://www.amazon.com/dp/XXXX
-  - Cables de bujías: $25.00 → https://www.autozone.com/XXXX
-  - Bobina de encendido: $45.00 → https://www.rockauto.com/XXXX
-  - Sensor de posición del cigüeñal: $30.00 → https://www.mercadolibre.com/XXXX
+Código: [Código DTC] ([Descripción del código])
+Este código es genérico. Se necesita diagnóstico adicional antes de reemplazar piezas.
+Posibles repuestos relacionados (lista orientativa):
+- Repuesto 1: [Precio estimado]
+  → [URL]
+- Repuesto 2: [Precio estimado]
+  → [URL]
+- Repuesto 3: [Precio estimado]
+  → [URL]
+- Repuesto 4: [Precio estimado]
+  → [URL]
 
 NOTA FINAL:
 Aclara si el problema requiere revisión mecánica inmediata o si puede esperar.
