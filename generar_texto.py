@@ -59,12 +59,11 @@ Si el código DTC es específico:
     - Obligatoriamente muestra al menos 4 opciones de compra del repuesto:
         - Nombre del repuesto
         - Precio estimado en dolares 
-        - URL funcional de búsqueda del repuesto en la tienda correspondiente (ejemplo: Amazon, eBay, AutoZone, RockAuto, MercadoLibre u otras tiendas).
+        - URL funcional de búsqueda del repuesto en la tienda correspondiente (ejemplo: Amazon, eBay, MercadoLibre u otras tiendas).
     - Las opciones deben ser variadas en tiendas y precios para dar alternativas al usuario.
     - Ejemplo de formato de salida:
 
       Código: [Código DTC]
-      
       Repuesto: [Nombre del repuesto sugerido]
 
       Opciones de compra:
@@ -85,22 +84,21 @@ Si el código DTC es genérico:
     - Obligatoriamente sugiere al menos 4 posibles repuestos en base a la información del vehículo (marca, modelo, año y VIN):
         - Nombre del repuesto
         - Precio estimado en dolares
-        - URL funcional de búsqueda del repuesto en la tienda correspondiente (ejemplo: Amazon, eBay, AutoZone, RockAuto, MercadoLibre u otras tiendas).
+        - URL funcional de búsqueda del repuesto en la tienda correspondiente (ejemplo: Amazon, eBay, MercadoLibre u otras tiendas).
     - Las opciones deben ser variadas en tiendas y precios para dar alternativas al usuario.
     - Ejemplo de formato de salida:
 
       Código: [Código DTC]
-
       Este código es genérico. Se necesita diagnóstico adicional antes de reemplazar piezas.
+      
       Posibles repuestos relacionados:
-
-      [Repuesto 1]: [Precio estimado en dolares]
+      [Nombre Tienda 1], [Repuesto 1]: [Precio estimado en dolares]
       [URL]
-      [Repuesto 2]: [Precio estimado en dolares]
+      [Nombre Tienda 2], [Repuesto 2]: [Precio estimado en dolares]
       [URL]
-      [Repuesto 3]: [Precio estimado en dolares]
+      [Nombre Tienda 3], [Repuesto 3]: [Precio estimado en dolares]
       [URL]
-      [Repuesto 4]: [Precio estimado en dolares]
+      [Nombre Tienda 4], [Repuesto 4]: [Precio estimado en dolares]
       [URL]
 
 NOTA FINAL:
