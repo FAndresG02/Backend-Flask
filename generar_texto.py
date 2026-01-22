@@ -115,7 +115,6 @@ NOTA FINAL:
 Aclara si el problema requiere revisión mecánica inmediata o si puede esperar.
 Indica que la información no reemplaza un diagnóstico profesional.
 """
-
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",
