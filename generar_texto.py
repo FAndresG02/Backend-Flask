@@ -1,6 +1,9 @@
-import google.generativeai as genai
+import os
+from openai import OpenAI
 
-genai.configure(api_key="AIzaSyD-aH1l75iNwjLG-KSq2D9qUeRvxITau9Q")
+client = OpenAI(
+    api_key=os.environ.get("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")
+)
 
 def generar_informe_ia(codigo, vehiculo):
     prompt = f"""
@@ -112,9 +115,17 @@ NOTA FINAL:
 Aclara si el problema requiere revisión mecánica inmediata o si puede esperar.
 Indica que la información no reemplaza un diagnóstico profesional.
 """
-    model = genai.GenerativeModel("gemini-2.5-flash")
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "Eres un asistente técnico automotriz responsable y profesional."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.2
+        )
 
-    response = model.generate_content(prompt)
+        return response.choices[0].message.content
 
-    return response.text
-
+    except Exception:
+        return "No se pudo generar el informe en este momento. Intente nuevamente."
