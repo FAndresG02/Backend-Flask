@@ -35,7 +35,7 @@ Reglas de comportamiento:
     - Nunca sugieras reemplazar componentes mayores sin confirmación.
     - Los costos deben ser estimados y coherentes con el mercado ecuatoriano.
     - Limita cada sección a un máximo de 4 a 5 líneas.
-    - Las URLs deben dirigir a resultados de búsqueda del producto, no a enlaces directos a un artículo específico.
+    - Las URLs DEBEN ser URLs de búsqueda genéricas (por ejemplo, búsquedas en Amazon, MercadoLibre o eBay). NO necesitas verificar si el enlace existe. SIEMPRE genera las URLs aunque sean aproximadas.
     - Clasifica siempre el código por nivel de severidad: leve, moderado o grave.
 
 Debes responder estrictamente en el siguiente formato:
@@ -114,15 +114,23 @@ Si el código DTC es genérico:
 NOTA FINAL:
 Aclara si el problema requiere revisión mecánica inmediata o si puede esperar.
 Indica que la información no reemplaza un diagnóstico profesional.
+
+OBLIGATORIO:
+- Nunca omitas secciones.
+- Si una sección aplica, debe completarse.
+- Las URLs pueden ser de búsqueda simulada.
+- No acortes la respuesta por brevedad.
+- Prioriza detalle sobre concisión.
 """
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "Eres un asistente técnico automotriz responsable y profesional."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.2
+            temperature=0.2,
+            max_tokens=1200
         )
 
         return response.choices[0].message.content
