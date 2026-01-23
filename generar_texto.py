@@ -93,7 +93,7 @@ REPUESTO SUGERIDO:
 
 SI EL CÓDIGO ES ESPECÍFICO:
 - Indica el nombre exacto del repuesto compatible con el vehículo.
-- Muestra al menos 5 opciones de compra.
+- Muestra 4 opciones de compra.
 - Cada opción debe incluir:
   nombre del repuesto,
   precio estimado en dólares,
@@ -112,13 +112,11 @@ SI EL CÓDIGO ES ESPECÍFICO:
   [URL]
   [Nombre Tienda 4]: [Precio estimado en dolares]
   [URL]
-  [Nombre Tienda 5]: [Precio estimado en dolares]
-  [URL]
 
 SI EL CÓDIGO ES GENÉRICO:
 - Muestra exactamente este mensaje:
   "Este código es genérico. Se necesita diagnóstico adicional antes de reemplazar piezas."
-- Sugiere al menos 5 posibles repuestos RELACIONADOS,
+- Sugiere 4 posibles repuestos RELACIONADOS,
   pero compatibles con el vehículo indicado.
 - Cada opción debe incluir:
   nombre del repuesto,
@@ -134,8 +132,6 @@ SI EL CÓDIGO ES GENÉRICO:
   [Nombre Tienda 3], [Repuesto 3]: [Precio estimado en dolares]
   [URL]
   [Nombre Tienda 4], [Repuesto 4]: [Precio estimado en dolares]
-  [URL]
-  [Nombre Tienda 5], [Repuesto 5]: [Precio estimado en dolares]
   [URL]
 
 NOTA FINAL:
