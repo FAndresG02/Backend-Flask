@@ -146,7 +146,7 @@ OBLIGATORIO:
     try:
         response = client.responses.create(
             model="gpt-5.2",
-            reasoning={"effort": "medio"},
+            reasoning={"effort": "medium"},
             input=[
                 {
                     "role": "system",
