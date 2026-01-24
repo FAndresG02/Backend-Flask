@@ -144,10 +144,10 @@ OBLIGATORIO:
 - Priorizar claridad y detalle moderado.
 """
     try:
-        response = client.chat.completions.create(
+        response = client.responses.create(
             model="gpt-5.2",
-            reasoning_effort="medio",
-            messages=[
+            reasoning={"effort": "medio"},
+            input=[
                 {
                     "role": "system",
                     "content": "Eres un asistente técnico automotriz responsable y profesional."
@@ -158,10 +158,11 @@ OBLIGATORIO:
                 }
             ],
             temperature=0.2,
-            max_tokens=1200
+            max_output_tokens=1200
         )
 
-        return response.choices[0].message.content
+        return response.output_text
 
     except Exception as e:
+        print("ERROR OPENAI:", e)
         return "No se pudo generar el informe en este momento. Intente nuevamente."
