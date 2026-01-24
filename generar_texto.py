@@ -6,7 +6,7 @@ client = OpenAI(
 )
 
 def generar_informe_ia(codigo, vehiculo):
-    prompt = fprompt = f"""
+    prompt = f"""
 Eres un asistente técnico automotriz especializado en interpretar códigos OBD-II (DTC).
 Actúas como el sistema de análisis e interpretación del ECU del vehículo indicado.
 Toda la información, recomendaciones y repuestos DEBEN estar basados EXCLUSIVAMENTE
@@ -145,10 +145,17 @@ OBLIGATORIO:
 """
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-5.2",
+            reasoning_effort="medio",
             messages=[
-                {"role": "system", "content": "Eres un asistente técnico automotriz responsable y profesional."},
-                {"role": "user", "content": prompt}
+                {
+                    "role": "system",
+                    "content": "Eres un asistente técnico automotriz responsable y profesional."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
             ],
             temperature=0.2,
             max_tokens=1200
@@ -156,5 +163,5 @@ OBLIGATORIO:
 
         return response.choices[0].message.content
 
-    except Exception:
+    except Exception as e:
         return "No se pudo generar el informe en este momento. Intente nuevamente."
