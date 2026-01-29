@@ -11,9 +11,7 @@ from generar_texto import generar_informe_ia
 
 app = Flask(__name__)
 
-# -----------------------------
-# INICIALIZAR FIREBASE (desde ENV VAR si existe)
-# -----------------------------
+# Inicializar firebase
 firebase_cred_json = os.environ.get("FIREBASE_SERVICE_ACCOUNT_JSON")
 
 if firebase_cred_json:
@@ -29,9 +27,7 @@ else:
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# -----------------------------
-# FUNCIONES AUXILIARES
-# -----------------------------
+# Funciones auxiliares
 def clean_string(s):
     return "".join(c for c in s if c.isalnum()).upper()
 
@@ -48,9 +44,7 @@ def clean_dtc_list(dtc_list):
             cleaned.append(c)
     return sorted(list(set(cleaned)))
 
-# -----------------------------
-# FUNCION PARA ENVIAR NOTIFICACIÓN FCM
-# -----------------------------
+# Función para enviar notificacin FCM
 def send_push_notification(title, body, codigo):
     message = messaging.Message(
         notification=messaging.Notification(
@@ -68,9 +62,7 @@ def send_push_notification(title, body, codigo):
     response = messaging.send(message)
     print('Notificación enviada:', response)
 
-# -----------------------------
-# ENDPOINT: RECIBIR OBD
-# -----------------------------
+# Endpoint: Recibir datos OBD
 @app.route('/obd', methods=['POST'])
 def obd_data():
     try:
@@ -102,9 +94,7 @@ def obd_data():
         print("ERROR en /obd:", str(e))
         return jsonify({"error": str(e)}), 500
 
-# -----------------------------
-# ENDPOINT: OBTENER DTC ÚNICOS
-# -----------------------------
+# Endopint: Obtener DTC únicos
 @app.route('/data', methods=['GET'])
 def get_data_full():
     try:
@@ -128,9 +118,7 @@ def get_data_full():
         print("ERROR en /data_full:", str(e))
         return jsonify({"error": str(e)}), 500
 
-# -----------------------------
-# ENDPOINT: SIMULAR DTC ALEATORIO
-# -----------------------------
+# Endpoint: Simular DTC aleatorio
 @app.route('/simulate', methods=['GET'])
 def simulate_data():
     try:
@@ -159,9 +147,7 @@ def simulate_data():
         return jsonify({"error": str(e)}), 500
 
 
-# -----------------------------
-# ENDPOINT: SIMULAR DTC ESPECÍFICO
-# -----------------------------
+# Endpoint: Simular DTC específico
 @app.route('/create_dtc/<codigo>', methods=['GET'])
 def simulate_specific_dtc(codigo):
     try:
@@ -185,9 +171,7 @@ def simulate_specific_dtc(codigo):
         print("ERROR en /create_dtc:", str(e))
         return jsonify({"error": str(e)}), 500
 
-# -----------------------------
-# ENDPOINT: GUARDAR CONFIGURACIÓN DEL VEHÍCULO
-# -----------------------------
+# Endpoint: Guardar configuración del vehículo
 @app.route('/vehicle', methods=['POST'])
 def save_vehicle():
     try:
@@ -216,9 +200,7 @@ def save_vehicle():
         return jsonify({"error": str(e)}), 500
     
 
-# -----------------------------------------
-# ENDPOINT: OBTENER VEHÍCULO GUARDADO
-# -----------------------------------------
+# Endpoint: Obtener configuración del vehículo
 @app.route('/vehicle', methods=['GET'])
 def get_vehicle():
     try:
@@ -237,9 +219,7 @@ def get_vehicle():
         return jsonify({"exists": False, "error": str(e)}), 500
     
     
-# -----------------------------------------
-# ENDPOINT: GENERAR INFORME IA PARA CÓDIGO DTC
-# -----------------------------------------
+# Endpoint: Generar informe IA para un código DTC
 @app.route('/ia/<codigo>', methods=['GET'])
 def ia_dtc(codigo):
     try:
@@ -273,9 +253,7 @@ def ia_dtc(codigo):
         return jsonify({"error": str(e)}), 500
     
     
-# -----------------------------------------
-# ENDPOINT: BORRAR SOLO UN CÓDIGO DTC
-# -----------------------------------------
+# Endpoint: Eliminar un código DTC de todos los documentos
 @app.route('/delete_dtc/<codigo>', methods=['DELETE'])
 def delete_dtc(codigo):
     try:
@@ -313,9 +291,7 @@ def delete_dtc(codigo):
         print("ERROR en DELETE /delete_dtc:", e)
         return jsonify({"error": str(e)}), 500
     
-# -----------------------------------------
-# ENDPOINT: OBTENER HISTORIAL COMPLETO IA_REPORTS
-# -----------------------------------------
+# Endpoint: Obtener todos los informes IA
 @app.route('/ia_reports', methods=['GET'])
 def get_ia_reports():
     try:
@@ -336,9 +312,7 @@ def get_ia_reports():
         print("ERROR en GET /ia_reports:", e)
         return jsonify({"error": str(e)}), 500
 
-# -----------------------------------------
-# ENDPOINT: ELIMINAR INFORME IA POR CÓDIGO
-# -----------------------------------------
+# Endpoint: Eliminar informes IA por código DTC
 @app.route('/ia_reports/<codigo>', methods=['DELETE'])
 def delete_ia_report(codigo):
     try:
@@ -364,9 +338,7 @@ def delete_ia_report(codigo):
         print("ERROR en DELETE /ia_reports/<codigo>:", e)
         return jsonify({"error": str(e)}), 500
     
-# -----------------------------------------
-# ENDPOINT: ELIMINAR TODOS LOS INFORMES IA
-# -----------------------------------------
+# Endpoint: Eliminar todos los informes IA
 @app.route('/ia_reports', methods=['DELETE'])
 def delete_all_ia_reports():
     try:
@@ -386,9 +358,7 @@ def delete_all_ia_reports():
         print("ERROR en DELETE /ia_reports:", e)
         return jsonify({"error": str(e)}), 500    
 
-# -----------------------------------------
-# ENDPOINT: borrar TODOS los DTC 
-# -----------------------------------------
+# Endpoint: Eliminar codigos DTC de Firestore
 @app.route('/borrar_dtc_todos', methods=['POST'])
 def clear_history():
     try:
@@ -412,9 +382,7 @@ def clear_history():
         print(f"ERROR /clear_history: {e}")
         return jsonify({"error": "Error borrando base de datos", "details": str(e)}), 500
 
-# -----------------------------------------
-# ENDPOINT: borrar CÓDIGOS DTC en la ECU
-# -----------------------------------------   
+# Endpoint: Eliminar DTC de la ECU
 @app.route('/commands/clear_dtc', methods=['POST'])
 def command_clear_dtc():
     db.collection("commands").document("ecu").set({
@@ -424,7 +392,7 @@ def command_clear_dtc():
     })
     return jsonify({"status": "ok"}), 200
 
-
+# Endpoint: Obtener estado del comando a la ECU
 @app.route('/commands/status', methods=['GET'])
 def command_status():
     doc = db.collection("commands").document("ecu").get()
@@ -432,7 +400,7 @@ def command_status():
         return jsonify({"exists": False}), 200
     return jsonify(doc.to_dict()), 200
 
-
+# Endpoint: Confirmar ejecución del comando a la ECU
 @app.route('/commands/confirm', methods=['POST'])
 def command_confirm():
     data = request.get_json()
@@ -446,8 +414,6 @@ def command_confirm():
 
     return jsonify({"status": "updated"}), 200
 
-# -----------------------------
-# INICIAR SERVIDOR
-# -----------------------------
+# Ejecutar la aplicación
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=False)
