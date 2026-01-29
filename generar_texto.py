@@ -176,7 +176,7 @@ La respuesta DEBE terminar siempre en la sección "NOTA FINAL".
 """
     try:
         response = client.responses.create(
-            model="gpt-5.2",
+            model="gpt-5-mini",
             reasoning={"effort": "low"},
             input=[
                 {
